@@ -28,9 +28,11 @@
             </feature>
         </config-file>
 
-        <config-file target="AndroidManifest.xml" parent="/manifest/application">
+        <config-file target="AndroidManifest.xml" parent="/manifest">
             <uses-permission android:name="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"/>
-
+		</config-file>
+        
+		<config-file target="AndroidManifest.xml" parent="/manifest/application">
             <service  android:name="net.coconauts.notificationListener.NotificationService"
               android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" >
                 <intent-filter>
