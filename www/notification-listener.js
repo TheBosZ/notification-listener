@@ -18,10 +18,12 @@ module.exports = {
 
     // value must be an ArrayBuffer
     listen: function (success, failure) {
-        console.log("Calling cordova listen method");
         cordova.exec(success, failure, 'NotificationListener', 'listen', []);
     },
     isEnabled: function(success, failure) {
         cordova.exec(success, failure, 'NotificationListener', 'isEnabled', []);
+    },
+    requestEnable: function(success, failure) {
+        cordova.exec(success, failure, 'NotificationListener', 'requestEnable', []);
     }
 };

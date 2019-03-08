@@ -1,5 +1,7 @@
 package net.coconauts.notificationListener;
 
+import android.content.Intent;
+import android.provider.Settings;
 import android.view.Gravity;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -17,7 +19,7 @@ public class NotificationCommands extends CordovaPlugin {
 
     private static final String LISTEN = "listen";
     private static final String IS_ENABLED = "isEnabled";
-    private static boolean ENABLED = false;
+    private static final String REQUEST_ENABLE = "requestEnable";
 
     // note that webView.isPaused() is not Xwalk compatible, so tracking it poor-man style
     private boolean isPaused;
@@ -27,70 +29,79 @@ public class NotificationCommands extends CordovaPlugin {
     @Override
     public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) throws JSONException {
 
-      Log.i(TAG, "Received action " + action);
+        Log.i(TAG, "Received action " + action);
 
-      if (LISTEN.equals(action)) {
-        setListener(callbackContext);
-        return true;
-    } else if (IS_ENABLED.equals(action)) {
-        if (ENABLED == true) {
-            callbackContext.success("ENABLED");
-        } else {
-            callbackContext.error("DISABLED");
+        switch (action) {
+            case LISTEN:
+                setListener(callbackContext);
+                return true;
+            case IS_ENABLED:
+                if (Settings.Secure.getString(cordova.getContext().getContentResolver(), "enabled_notification_listeners").contains(cordova.getActivity().getApplicationContext().getPackageName())) {
+                    callbackContext.success("ENABLED");
+                } else {
+                    callbackContext.error("DISABLED");
+                }
+                return true;
+            case REQUEST_ENABLE:
+                this.requestEnable();
+                return true;
+            default:
+                callbackContext.error(TAG + ". " + action + " is not a supported function.");
+                return false;
         }
-        return true;
-      } else {
-        callbackContext.error(TAG+". " + action + " is not a supported function.");
-        return false;
-      }
     }
 
     @Override
     public void onPause(boolean multitasking) {
-      this.isPaused = true;
+        this.isPaused = true;
     }
 
     @Override
     public void onResume(boolean multitasking) {
-      this.isPaused = false;
+        this.isPaused = false;
     }
 
-    public static void listenerConnected(Boolean b){
-        ENABLED = b;
+    private void requestEnable() {
+        Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
+        cordova.getActivity().startActivity(intent);
+    }
+
+    public static void listenerConnected(Boolean b) {
+//        ENABLED = b;
     }
 
     public void setListener(CallbackContext callbackContext) {
-      Log.i("Notification", "Attaching callback context listener " + callbackContext);
-      listener = callbackContext;
+        Log.i("Notification", "Attaching callback context listener " + callbackContext);
+        listener = callbackContext;
 
-      PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
-      result.setKeepCallback(true);
-      callbackContext.sendPluginResult(result);
-    }
-
-    public static void notifyListener(StatusBarNotification n){
-      if (listener == null) {
-        Log.e(TAG, "Must define listener first. Call notificationListener.listen(success,error) first");
-        return;
-      }
-      try  {
-
-        JSONObject json = parse(n);
-
-        PluginResult result = new PluginResult(PluginResult.Status.OK, json);
-
-        Log.i(TAG, "Sending notification to listener " + json.toString());
+        PluginResult result = new PluginResult(PluginResult.Status.NO_RESULT);
         result.setKeepCallback(true);
+        callbackContext.sendPluginResult(result);
+    }
 
-        listener.sendPluginResult(result);
-      } catch (Exception e){
-        Log.e(TAG, "Unable to send notification "+ e);
-        listener.error(TAG+". Unable to send message: "+e.getMessage());
-      }
+    public static void notifyListener(StatusBarNotification n) {
+        if (listener == null) {
+            Log.e(TAG, "Must define listener first. Call notificationListener.listen(success,error) first");
+            return;
+        }
+        try {
+
+            JSONObject json = parse(n);
+
+            PluginResult result = new PluginResult(PluginResult.Status.OK, json);
+
+            Log.i(TAG, "Sending notification to listener " + json.toString());
+            result.setKeepCallback(true);
+
+            listener.sendPluginResult(result);
+        } catch (Exception e) {
+            Log.e(TAG, "Unable to send notification " + e);
+            listener.error(TAG + ". Unable to send message: " + e.getMessage());
+        }
     }
 
 
-    private static JSONObject parse(StatusBarNotification n)  throws JSONException{
+    private static JSONObject parse(StatusBarNotification n) throws JSONException {
 
         JSONObject json = new JSONObject();
 
@@ -98,25 +109,26 @@ public class NotificationCommands extends CordovaPlugin {
 
         json.put("title", getExtra(extras, "android.title"));
         json.put("package", n.getPackageName());
-        json.put("text", getExtra(extras,"android.text"));
+        json.put("text", getExtra(extras, "android.text"));
         json.put("textLines", getExtraLines(extras, "android.textLines"));
 
         return json;
     }
 
-    private static String getExtraLines(Bundle extras, String extra){
+    private static String getExtraLines(Bundle extras, String extra) {
         try {
             CharSequence[] lines = extras.getCharSequenceArray(extra);
-            return lines[lines.length-1].toString();
-        } catch( Exception e){
+            return lines[lines.length - 1].toString();
+        } catch (Exception e) {
             Log.d(TAG, "Unable to get extra lines " + extra);
             return "";
         }
     }
-    private static String getExtra(Bundle extras, String extra){
+
+    private static String getExtra(Bundle extras, String extra) {
         try {
             return extras.get(extra).toString();
-        } catch( Exception e){
+        } catch (Exception e) {
             return "";
         }
     }
