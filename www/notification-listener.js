@@ -1,4 +1,3 @@
-cordova.define("net.coconauts.notification-listener.NotificationListener", function(require, exports, module) {
 // (c) 2015 Javier Rengel (Coconauts)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,5 +25,3 @@ module.exports = {
         cordova.exec(success, failure, 'NotificationListener', 'isEnabled', []);
     }
 };
-
-});
